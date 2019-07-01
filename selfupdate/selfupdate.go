@@ -56,6 +56,7 @@ const devValidTime = 7 * 24 * time.Hour
 
 var ErrHashMismatch = errors.New("new file hash mismatch after patch")
 var ErrNoAvailableUpdates = errors.New("no available updates")
+var ErrNotNowHolder = errors.New("")
 var up = update.New()
 var defaultHTTPRequester = HTTPRequester{}
 
@@ -113,8 +114,11 @@ func (u *Updater) BackgroundRun() error {
 		if err := u.update(); err != nil {
 			return err
 		}
+		return nil
+	}else{
+		return ErrNotNowHolder
 	}
-	return nil
+
 }
 
 func (u *Updater) wantUpdate() bool {
