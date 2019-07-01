@@ -26,15 +26,16 @@
 package selfupdate
 
 import (
+	"archive/zip"
 	"bytes"
-	"compress/gzip"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/blang/semver"
+	"github.com/kr/binarydist"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -43,7 +44,6 @@ import (
 	"time"
 
 	"github.com/kardianos/osext"
-	"github.com/kr/binarydist"
 	"gopkg.in/inconshreveable/go-update.v0"
 )
 
@@ -107,11 +107,7 @@ func (u *Updater) BackgroundRun() error {
 			// fail
 			return err
 		}
-		//self, err := osext.Executable()
-		//if err != nil {
-		// fail update, couldn't figure out path to self
-		//return
-		//}
+
 		// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
 		if err := u.update(); err != nil {
 			return err
@@ -144,28 +140,18 @@ func (u *Updater) update() error {
 	if err != nil {
 		return err
 	}
-	if u.Info.Version == u.CurrentVersion {
+
+	newVer := semver.MustParse(u.Info.Version)
+	currentVer := semver.MustParse(u.CurrentVersion)
+	//if current version is greater than or equal the new version dont update
+	if currentVer.GE(newVer) {
 		return nil
 	}
-	bin, err := u.fetchAndVerifyPatch(old)
-	if err != nil {
-		if err == ErrHashMismatch {
-			log.Println("update: hash mismatch from patched binary")
-		} else {
-			if u.DiffURL != "" {
-				log.Println("update: patching binary,", err)
-			}
-		}
 
-		bin, err = u.fetchAndVerifyFullBin()
-		if err != nil {
-			if err == ErrHashMismatch {
-				log.Println("update: hash mismatch from full binary")
-			} else {
-				log.Println("update: fetching full binary,", err)
-			}
-			return err
-		}
+
+	bin, err := u.fetchAndVerifyFullBin()
+	if err != nil {
+		return err
 	}
 
 	// close the old binary before installing because on windows
@@ -233,17 +219,25 @@ func (u *Updater) fetchAndVerifyFullBin() ([]byte, error) {
 }
 
 func (u *Updater) fetchBin() ([]byte, error) {
-	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat) + ".gz")
+	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(plat) + ".zip")
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
-	buf := new(bytes.Buffer)
-	gz, err := gzip.NewReader(r)
+
+	content, err := ioutil.ReadAll(r)
+	zr, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
 		return nil, err
 	}
-	if _, err = io.Copy(buf, gz); err != nil {
+
+	fileReader, err := zr.File[0].Open()
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err = io.Copy(buf, fileReader); err != nil {
 		return nil, err
 	}
 
