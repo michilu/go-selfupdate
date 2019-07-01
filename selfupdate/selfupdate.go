@@ -55,6 +55,7 @@ const (
 const devValidTime = 7 * 24 * time.Hour
 
 var ErrHashMismatch = errors.New("new file hash mismatch after patch")
+var ErrNoAvailableUpdates = errors.New("no available updates")
 var up = update.New()
 var defaultHTTPRequester = HTTPRequester{}
 
@@ -125,7 +126,24 @@ func (u *Updater) wantUpdate() bool {
 	return writeTime(path, time.Now().Add(wait))
 }
 
-func (u *Updater) update() error {
+//CheckIsThereNewVersion to check if there is an update without pulling the binary
+func (u *Updater) CheckIsThereNewVersion()(*semver.Version,error){
+	err := u.fetchInfo()
+	if err != nil {
+		return nil,err
+	}
+
+	newVer := semver.MustParse(u.Info.Version)
+	currentVer := semver.MustParse(u.CurrentVersion)
+	//if current version is greater than or equal the new version dont update
+	if currentVer.GE(newVer) {
+		return nil,ErrNoAvailableUpdates
+	}
+
+	return &newVer,nil
+}
+
+func (u *Updater) update() (error) {
 	path, err := osext.Executable()
 	if err != nil {
 		return err
@@ -136,18 +154,13 @@ func (u *Updater) update() error {
 	}
 	defer old.Close()
 
-	err = u.fetchInfo()
-	if err != nil {
-		return err
+	//is check update called before!!?
+	//to avoid double check request to the endpoint
+	if u.Info.Version == ""{
+		_, err := u.CheckIsThereNewVersion(); if err != nil{
+			return err
+		}
 	}
-
-	newVer := semver.MustParse(u.Info.Version)
-	currentVer := semver.MustParse(u.CurrentVersion)
-	//if current version is greater than or equal the new version dont update
-	if currentVer.GE(newVer) {
-		return errors.New("no updates are available")
-	}
-
 
 	bin, err := u.fetchAndVerifyFullBin()
 	if err != nil {
@@ -165,6 +178,7 @@ func (u *Updater) update() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
