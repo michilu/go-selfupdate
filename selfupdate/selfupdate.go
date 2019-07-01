@@ -145,7 +145,7 @@ func (u *Updater) update() error {
 	currentVer := semver.MustParse(u.CurrentVersion)
 	//if current version is greater than or equal the new version dont update
 	if currentVer.GE(newVer) {
-		return nil
+		return errors.New("no updates are available")
 	}
 
 
