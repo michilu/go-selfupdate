@@ -138,10 +138,7 @@ func (u *Updater) BackgroundRun() error {
 	if !u.wantUpdate() {
 		return ErrNotNowHolder
 	}
-	_, err := u.ForegroundRun()
-	if err != nil {
-		return err
-	}
+	u.ForegroundRun()
 	return nil
 }
 
