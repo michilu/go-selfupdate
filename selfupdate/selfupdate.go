@@ -26,8 +26,8 @@
 package selfupdate
 
 import (
-	"archive/zip"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -237,25 +237,17 @@ func (u *Updater) fetchAndVerifyFullBin() ([]byte, error) {
 }
 
 func (u *Updater) fetchBin() ([]byte, error) {
-	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(plat) + ".zip")
+	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat) + ".gz")
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
-
-	content, err := ioutil.ReadAll(r)
-	zr, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		return nil, err
-	}
-
-	fileReader, err := zr.File[0].Open()
-	if err != nil {
-		return nil, err
-	}
-
 	buf := new(bytes.Buffer)
-	if _, err = io.Copy(buf, fileReader); err != nil {
+	gz, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = io.Copy(buf, gz); err != nil {
 		return nil, err
 	}
 
