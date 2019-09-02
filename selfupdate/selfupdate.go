@@ -52,7 +52,7 @@ const (
 	plat         = runtime.GOOS + "-" + runtime.GOARCH
 )
 
-const devValidTime = 7 * 24 * time.Hour
+//const devValidTime = 7 * 24 * time.Hour
 
 var ErrHashMismatch = errors.New("new file hash mismatch after patch")
 var ErrNoAvailableUpdates = errors.New("no available updates")
@@ -77,6 +77,10 @@ var defaultHTTPRequester = HTTPRequester{}
 //  if updater != nil {
 //  	go updater.BackgroundRun()
 //  }
+type UpdateInfo struct {
+	Version		string
+	Sha256		[]byte
+}
 type Updater struct {
 	CurrentVersion string    // Currently running version.
 	ApiURL         string    // Base URL for API requests (json files).
@@ -86,16 +90,29 @@ type Updater struct {
 	Dir            string    // Directory to store selfupdate state.
 	ForceCheck     bool      // Check for update regardless of cktime timestamp
 	Requester      Requester //Optional parameter to override existing http request handler
-	Info           struct {
-		Version string
-		Sha256  []byte
-	}
+	Info           UpdateInfo
 }
 
 func (u *Updater) getExecRelativeDir(dir string) string {
 	filename, _ := osext.Executable()
 	path := filepath.Join(filepath.Dir(filename), dir)
 	return path
+}
+
+// CanUpdate checks for update possibility: access rights, etc.
+func (u *Updater) CanUpdate() error {
+	return up.CanUpdate()
+}
+// FetchInfo fetches and provides information about current latest version
+func (u *Updater) FetchInfo() (UpdateInfo, error) {
+	if err := u.fetchInfo(); err != nil {
+		return UpdateInfo{}, err
+	}
+	return u.Info, nil
+}
+// Update force-updates app at the moment
+func (u *Updater) Update() error {
+	return u.update()
 }
 
 // BackgroundRun starts the update check and apply cycle.
