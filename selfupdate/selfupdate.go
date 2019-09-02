@@ -101,6 +101,10 @@ func (u *Updater) getExecRelativeDir(dir string) string {
 
 // CanUpdate checks for update possibility: access rights, etc.
 func (u *Updater) CanUpdate() error {
+	if err := os.MkdirAll(u.getExecRelativeDir(u.Dir), 0777); err != nil {
+		// fail
+		return err
+	}
 	return up.CanUpdate()
 }
 
@@ -117,27 +121,28 @@ func (u *Updater) Update() error {
 	return u.update()
 }
 
+// ForegroundRun starts the update check and apply cycle, returns updated or not.
+func (u *Updater) ForegroundRun() (bool, error) {
+	if err := u.CanUpdate(); err != nil {
+		return false, err
+	}
+	// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
+	if err := u.Update(); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // BackgroundRun starts the update check and apply cycle.
 func (u *Updater) BackgroundRun() error {
-	if err := os.MkdirAll(u.getExecRelativeDir(u.Dir), 0777); err != nil {
-		// fail
-		return err
-	}
-	if u.wantUpdate() {
-		if err := up.CanUpdate(); err != nil {
-			// fail
-			return err
-		}
-
-		// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
-		if err := u.update(); err != nil {
-			return err
-		}
-		return nil
-	} else {
+	if !u.wantUpdate() {
 		return ErrNotNowHolder
 	}
-
+	_, err := u.ForegroundRun()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *Updater) wantUpdate() bool {
