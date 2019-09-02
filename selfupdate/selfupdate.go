@@ -32,9 +32,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/blang/semver"
+	"github.com/kr/binarydist"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -43,7 +44,6 @@ import (
 	"time"
 
 	"github.com/kardianos/osext"
-	"github.com/kr/binarydist"
 	"gopkg.in/inconshreveable/go-update.v0"
 )
 
@@ -55,6 +55,8 @@ const (
 const devValidTime = 7 * 24 * time.Hour
 
 var ErrHashMismatch = errors.New("new file hash mismatch after patch")
+var ErrNoAvailableUpdates = errors.New("no available updates")
+var ErrNotNowHolder = errors.New("")
 var up = update.New()
 var defaultHTTPRequester = HTTPRequester{}
 
@@ -107,17 +109,16 @@ func (u *Updater) BackgroundRun() error {
 			// fail
 			return err
 		}
-		//self, err := osext.Executable()
-		//if err != nil {
-		// fail update, couldn't figure out path to self
-		//return
-		//}
+
 		// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
 		if err := u.update(); err != nil {
 			return err
 		}
+		return nil
+	}else{
+		return ErrNotNowHolder
 	}
-	return nil
+
 }
 
 func (u *Updater) wantUpdate() bool {
@@ -129,7 +130,24 @@ func (u *Updater) wantUpdate() bool {
 	return writeTime(path, time.Now().Add(wait))
 }
 
-func (u *Updater) update() error {
+//CheckIsThereNewVersion to check if there is an update without pulling the binary
+func (u *Updater) CheckIsThereNewVersion()(*semver.Version,error){
+	err := u.fetchInfo()
+	if err != nil {
+		return nil,err
+	}
+
+	newVer := semver.MustParse(u.Info.Version)
+	currentVer := semver.MustParse(u.CurrentVersion)
+	//if current version is greater than or equal the new version dont update
+	if currentVer.GE(newVer) {
+		return nil,ErrNoAvailableUpdates
+	}
+
+	return &newVer,nil
+}
+
+func (u *Updater) update() (error) {
 	path, err := osext.Executable()
 	if err != nil {
 		return err
@@ -140,32 +158,17 @@ func (u *Updater) update() error {
 	}
 	defer old.Close()
 
-	err = u.fetchInfo()
-	if err != nil {
-		return err
-	}
-	if u.Info.Version == u.CurrentVersion {
-		return nil
-	}
-	bin, err := u.fetchAndVerifyPatch(old)
-	if err != nil {
-		if err == ErrHashMismatch {
-			log.Println("update: hash mismatch from patched binary")
-		} else {
-			if u.DiffURL != "" {
-				log.Println("update: patching binary,", err)
-			}
-		}
-
-		bin, err = u.fetchAndVerifyFullBin()
-		if err != nil {
-			if err == ErrHashMismatch {
-				log.Println("update: hash mismatch from full binary")
-			} else {
-				log.Println("update: fetching full binary,", err)
-			}
+	//is check update called before!!?
+	//to avoid double check request to the endpoint
+	if u.Info.Version == ""{
+		_, err := u.CheckIsThereNewVersion(); if err != nil{
 			return err
 		}
+	}
+
+	bin, err := u.fetchAndVerifyFullBin()
+	if err != nil {
+		return err
 	}
 
 	// close the old binary before installing because on windows
@@ -179,6 +182,7 @@ func (u *Updater) update() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

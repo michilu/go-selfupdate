@@ -1,0 +1,10 @@
+github.com/blang/semver v0.0.0-20190414102917-ba2c2ddd8906 h1:KGe2go3VELJLcQfKBUlviUzERqg79dO6VYzCvQxF01w=
+github.com/blang/semver v0.0.0-20190414102917-ba2c2ddd8906/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
+github.com/kardianos/osext v0.0.0-20150528142315-6e7f84366347 h1:5t5oV2oWHlhcd3DmJ3UEjAzbc2NhaTU6vJDi18WapqM=
+github.com/kardianos/osext v0.0.0-20150528142315-6e7f84366347/go.mod h1:1NbS8ALrpOvjt0rHPNLyCIeMtbizbir8U//inJ+zuB8=
+github.com/kr/binarydist v0.0.0-20120828065244-9955b0ab8708 h1:G3jarnhJHDsHITGBES6vtsgRme9vQGFITGbQzJd7mG0=
+github.com/kr/binarydist v0.0.0-20120828065244-9955b0ab8708/go.mod h1:pE49GDVOelLlVz56xncbegMQqkyTO8sM36sT8bt7Z58=
+github.com/sanbornm/go-selfupdate v0.0.0-20190330003341-f041b81ae5e6 h1:vMxGyjtacYsuFFL17i3KXliXWgUPQtlBJLP7f/2pSHw=
+github.com/sanbornm/go-selfupdate v0.0.0-20190330003341-f041b81ae5e6/go.mod h1:smwNxgPPofIa0waDFEvust3+MZHkiUIet1WMk1SJYl8=
+gopkg.in/inconshreveable/go-update.v0 v0.0.0-20150814200126-d8b0b1d421aa h1:drvf2JoUL1fz3ttkGNkw+rf3kZa2//7XkYGpSO4NHNA=
+gopkg.in/inconshreveable/go-update.v0 v0.0.0-20150814200126-d8b0b1d421aa/go.mod h1:tuNm0ntQ7IH9VSA39XxzLMpee5c2DwgIbjD4x3ydo8Y=

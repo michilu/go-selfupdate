@@ -10,6 +10,7 @@ syntax: glob
 *~
 *.db
 *.log
+*.idea
 public/*
 go-selfupdate/go-selfupdate
 example/example-server

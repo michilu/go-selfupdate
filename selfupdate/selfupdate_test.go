@@ -36,7 +36,7 @@ func TestUpdaterWithEmptyPayloadNoErrorNoUpdate(t *testing.T) {
 	updater := createUpdater(mr)
 
 	err := updater.BackgroundRun()
-	if err != nil {
+	if err != ErrNotNowHolder {
 		t.Errorf("Error occurred: %#v", err)
 	}
 }
@@ -51,7 +51,7 @@ func TestUpdaterWithEmptyPayloadNoErrorNoUpdateEscapedPath(t *testing.T) {
 	updater := createUpdaterWithEscapedCharacters(mr)
 
 	err := updater.BackgroundRun()
-	if err != nil {
+	if err != ErrNotNowHolder {
 		t.Errorf("Error occurred: %#v", err)
 	}
 }
