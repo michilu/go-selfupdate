@@ -32,8 +32,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/blang/semver"
-	"github.com/kr/binarydist"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -43,7 +41,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/kardianos/osext"
+	"github.com/kr/binarydist"
 	"gopkg.in/inconshreveable/go-update.v0"
 )
 
@@ -78,8 +78,8 @@ var defaultHTTPRequester = HTTPRequester{}
 //  	go updater.BackgroundRun()
 //  }
 type UpdateInfo struct {
-	Version		string
-	Sha256		[]byte
+	Version string
+	Sha256  []byte
 }
 type Updater struct {
 	CurrentVersion string    // Currently running version.
@@ -103,6 +103,7 @@ func (u *Updater) getExecRelativeDir(dir string) string {
 func (u *Updater) CanUpdate() error {
 	return up.CanUpdate()
 }
+
 // FetchInfo fetches and provides information about current latest version
 func (u *Updater) FetchInfo() (UpdateInfo, error) {
 	if err := u.fetchInfo(); err != nil {
@@ -110,6 +111,7 @@ func (u *Updater) FetchInfo() (UpdateInfo, error) {
 	}
 	return u.Info, nil
 }
+
 // Update force-updates app at the moment
 func (u *Updater) Update() error {
 	return u.update()
@@ -132,7 +134,7 @@ func (u *Updater) BackgroundRun() error {
 			return err
 		}
 		return nil
-	}else{
+	} else {
 		return ErrNotNowHolder
 	}
 
@@ -148,23 +150,23 @@ func (u *Updater) wantUpdate() bool {
 }
 
 //CheckIsThereNewVersion to check if there is an update without pulling the binary
-func (u *Updater) CheckIsThereNewVersion()(*semver.Version,error){
+func (u *Updater) CheckIsThereNewVersion() (*semver.Version, error) {
 	err := u.fetchInfo()
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	newVer := semver.MustParse(u.Info.Version)
 	currentVer := semver.MustParse(u.CurrentVersion)
 	//if current version is greater than or equal the new version dont update
 	if currentVer.GE(newVer) {
-		return nil,ErrNoAvailableUpdates
+		return nil, ErrNoAvailableUpdates
 	}
 
-	return &newVer,nil
+	return &newVer, nil
 }
 
-func (u *Updater) update() (error) {
+func (u *Updater) update() error {
 	path, err := osext.Executable()
 	if err != nil {
 		return err
@@ -177,8 +179,9 @@ func (u *Updater) update() (error) {
 
 	//is check update called before!!?
 	//to avoid double check request to the endpoint
-	if u.Info.Version == ""{
-		_, err := u.CheckIsThereNewVersion(); if err != nil{
+	if u.Info.Version == "" {
+		_, err := u.CheckIsThereNewVersion()
+		if err != nil {
 			return err
 		}
 	}

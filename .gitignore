@@ -2,18 +2,12 @@
 syntax: glob
 
 *.DS_Store
-*.swp
-*.swo
-*.pyc
-*.php~
-*.orig
-*~
-*.db
-*.log
 *.idea
-public/*
-go-selfupdate/go-selfupdate
+*~
+/vendor
+example/deployment/*
 example/example-server
 example/hello-updater
 example/public/*
-example/deployment/*
+go-selfupdate/go-selfupdate
+public/*
