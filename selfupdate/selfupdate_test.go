@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -13,11 +14,11 @@ var testHash = sha256.New()
 func TestUpdaterFetchMustReturnNonNilReaderCloser(t *testing.T) {
 	mr := &mockRequester{}
 	mr.handleRequest(
-		func(url string) (io.ReadCloser, error) {
+		func(ctx context.Context, url string) (io.ReadCloser, error) {
 			return nil, nil
 		})
 	updater := createUpdater(mr)
-	_, err := updater.ForegroundRun()
+	_, err := updater.ForegroundRun(context.Background())
 	if err != nil {
 		equals(t, "Fetch was expected to return non-nil ReadCloser", err.Error())
 	} else {
@@ -29,13 +30,13 @@ func TestUpdaterFetchMustReturnNonNilReaderCloser(t *testing.T) {
 func TestUpdaterWithEmptyPayloadNoErrorNoUpdate(t *testing.T) {
 	mr := &mockRequester{}
 	mr.handleRequest(
-		func(url string) (io.ReadCloser, error) {
+		func(ctx context.Context, url string) (io.ReadCloser, error) {
 			equals(t, "http://updates.yourdomain.com/myapp/darwin-amd64.json", url)
 			return newTestReaderCloser("{}"), nil
 		})
 	updater := createUpdater(mr)
 
-	err := updater.BackgroundRun()
+	err := updater.BackgroundRun(context.Background())
 	if err != nil {
 		t.Errorf("Error occurred: %#v", err)
 	}
@@ -44,13 +45,13 @@ func TestUpdaterWithEmptyPayloadNoErrorNoUpdate(t *testing.T) {
 func TestUpdaterWithEmptyPayloadNoErrorNoUpdateEscapedPath(t *testing.T) {
 	mr := &mockRequester{}
 	mr.handleRequest(
-		func(url string) (io.ReadCloser, error) {
+		func(ctx context.Context, url string) (io.ReadCloser, error) {
 			equals(t, "http://updates.yourdomain.com/myapp%2Bfoo/darwin-amd64.json", url)
 			return newTestReaderCloser("{}"), nil
 		})
 	updater := createUpdaterWithEscapedCharacters(mr)
 
-	err := updater.BackgroundRun()
+	err := updater.BackgroundRun(context.Background())
 	if err != ErrNotNowHolder {
 		t.Errorf("Error occurred: %#v", err)
 	}

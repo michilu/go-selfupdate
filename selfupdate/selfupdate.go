@@ -28,6 +28,7 @@ package selfupdate
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -109,36 +110,36 @@ func (u *Updater) CanUpdate() error {
 }
 
 // FetchInfo fetches and provides information about current latest version
-func (u *Updater) FetchInfo() (UpdateInfo, error) {
-	if err := u.fetchInfo(); err != nil {
+func (u *Updater) FetchInfo(ctx context.Context) (UpdateInfo, error) {
+	if err := u.fetchInfo(ctx); err != nil {
 		return UpdateInfo{}, err
 	}
 	return u.Info, nil
 }
 
 // Update force-updates app at the moment
-func (u *Updater) Update() error {
-	return u.update()
+func (u *Updater) Update(ctx context.Context) error {
+	return u.update(ctx)
 }
 
 // ForegroundRun starts the update check and apply cycle, returns updated or not.
-func (u *Updater) ForegroundRun() (bool, error) {
+func (u *Updater) ForegroundRun(ctx context.Context) (bool, error) {
 	if err := u.CanUpdate(); err != nil {
 		return false, err
 	}
 	// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
-	if err := u.Update(); err != nil {
+	if err := u.Update(ctx); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 // BackgroundRun starts the update check and apply cycle.
-func (u *Updater) BackgroundRun() error {
+func (u *Updater) BackgroundRun(ctx context.Context) error {
 	if !u.wantUpdate() {
 		return ErrNotNowHolder
 	}
-	u.ForegroundRun()
+	u.ForegroundRun(ctx)
 	return nil
 }
 
@@ -152,8 +153,8 @@ func (u *Updater) wantUpdate() bool {
 }
 
 //CheckIsThereNewVersion to check if there is an update without pulling the binary
-func (u *Updater) CheckIsThereNewVersion() (*semver.Version, error) {
-	err := u.fetchInfo()
+func (u *Updater) CheckIsThereNewVersion(ctx context.Context) (*semver.Version, error) {
+	err := u.fetchInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +169,7 @@ func (u *Updater) CheckIsThereNewVersion() (*semver.Version, error) {
 	return &newVer, nil
 }
 
-func (u *Updater) update() error {
+func (u *Updater) update(ctx context.Context) error {
 	path, err := osext.Executable()
 	if err != nil {
 		return err
@@ -182,13 +183,13 @@ func (u *Updater) update() error {
 	//is check update called before!!?
 	//to avoid double check request to the endpoint
 	if u.Info.Version == "" {
-		_, err := u.CheckIsThereNewVersion()
+		_, err := u.CheckIsThereNewVersion(ctx)
 		if err != nil {
 			return err
 		}
 	}
 
-	bin, err := u.fetchAndVerifyFullBin()
+	bin, err := u.fetchAndVerifyFullBin(ctx)
 	if err != nil {
 		return err
 	}
@@ -208,8 +209,8 @@ func (u *Updater) update() error {
 	return nil
 }
 
-func (u *Updater) fetchInfo() error {
-	r, err := u.fetch(u.ApiURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(plat) + ".json")
+func (u *Updater) fetchInfo(ctx context.Context) error {
+	r, err := u.fetch(ctx, u.ApiURL+url.QueryEscape(u.CmdName)+"/"+url.QueryEscape(plat)+".json")
 	if err != nil {
 		return err
 	}
@@ -224,8 +225,8 @@ func (u *Updater) fetchInfo() error {
 	return nil
 }
 
-func (u *Updater) fetchAndVerifyPatch(old io.Reader) ([]byte, error) {
-	bin, err := u.fetchAndApplyPatch(old)
+func (u *Updater) fetchAndVerifyPatch(ctx context.Context, old io.Reader) ([]byte, error) {
+	bin, err := u.fetchAndApplyPatch(ctx, old)
 	if err != nil {
 		return nil, err
 	}
@@ -235,8 +236,8 @@ func (u *Updater) fetchAndVerifyPatch(old io.Reader) ([]byte, error) {
 	return bin, nil
 }
 
-func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
-	r, err := u.fetch(u.DiffURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.CurrentVersion) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat))
+func (u *Updater) fetchAndApplyPatch(ctx context.Context, old io.Reader) ([]byte, error) {
+	r, err := u.fetch(ctx, u.DiffURL+url.QueryEscape(u.CmdName)+"/"+url.QueryEscape(u.CurrentVersion)+"/"+url.QueryEscape(u.Info.Version)+"/"+url.QueryEscape(plat))
 	if err != nil {
 		return nil, err
 	}
@@ -246,8 +247,8 @@ func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (u *Updater) fetchAndVerifyFullBin() ([]byte, error) {
-	bin, err := u.fetchBin()
+func (u *Updater) fetchAndVerifyFullBin(ctx context.Context) ([]byte, error) {
+	bin, err := u.fetchBin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -258,8 +259,8 @@ func (u *Updater) fetchAndVerifyFullBin() ([]byte, error) {
 	return bin, nil
 }
 
-func (u *Updater) fetchBin() ([]byte, error) {
-	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat) + ".gz")
+func (u *Updater) fetchBin(ctx context.Context) ([]byte, error) {
+	r, err := u.fetch(ctx, u.BinURL+url.QueryEscape(u.CmdName)+"/"+url.QueryEscape(u.Info.Version)+"/"+url.QueryEscape(plat)+".gz")
 	if err != nil {
 		return nil, err
 	}
@@ -281,12 +282,12 @@ func randDuration(n time.Duration) time.Duration {
 	return time.Duration(rand.Int63n(int64(n)))
 }
 
-func (u *Updater) fetch(url string) (io.ReadCloser, error) {
+func (u *Updater) fetch(ctx context.Context, url string) (io.ReadCloser, error) {
 	if u.Requester == nil {
-		return defaultHTTPRequester.Fetch(url)
+		return defaultHTTPRequester.Fetch(ctx, url)
 	}
 
-	readCloser, err := u.Requester.Fetch(url)
+	readCloser, err := u.Requester.Fetch(ctx, url)
 	if err != nil {
 		return nil, err
 	}

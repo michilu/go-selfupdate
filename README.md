@@ -1,8 +1,8 @@
 go-selfupdate
 =============
 
-[![GoDoc](https://godoc.org/github.com/sanbornm/go-selfupdate/selfupdate?status.svg)](https://godoc.org/github.com/sanbornm/go-selfupdate/selfupdate)
-[![Build Status](https://travis-ci.org/sanbornm/go-selfupdate.svg?branch=master)](https://travis-ci.org/sanbornm/go-selfupdate)
+[![GoDoc](https://godoc.org/github.com/michilu/go-selfupdate/selfupdate?status.svg)](https://godoc.org/github.com/michilu/go-selfupdate/selfupdate)
+[![Build Status](https://travis-ci.org/michilu/go-selfupdate.svg?branch=master)](https://travis-ci.org/michilu/go-selfupdate)
 
 Enable your Golang applications to self update.  Inspired by Chrome based on Heroku's [hk](https://github.com/heroku/hk).
 
@@ -16,7 +16,7 @@ Enable your Golang applications to self update.  Inspired by Chrome based on Her
 
 ### Install library and update/patch creation utility
 
-`go get -u github.com/sanbornm/go-selfupdate/...`
+`go get -u github.com/michilu/go-selfupdate/...`
 
 ### Enable your App to Self Update
 
